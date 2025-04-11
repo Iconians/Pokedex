@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"iconians/pokedexcli/api"
+	"iconians/pokedexcli/internals/pokecache"
 	"os"
 	"strings"
-
-	"iconians/pokedexcli/api"
+	"time"
 )
 
 type Config struct {
@@ -21,7 +22,9 @@ type cliCommand struct {
 }
 
 var commandRegistry map[string]cliCommand
-var cfg = &api.Config{}
+var cfg = &api.Config{
+	Cache: pokecache.NewCache(5 * time.Second),
+}
 
 func initCommands() {
 	commandRegistry = map[string]cliCommand{
@@ -63,7 +66,7 @@ func commandExit() error {
 
 func commandHelp() error {
 	fmt.Println("Welcome to the Pokedex!")
-	fmt.Println("Usage:\n")
+	fmt.Println("Usage:")
 	for _, cmd := range commandRegistry {
 		fmt.Printf("%s: %s\n", cmd.name, cmd.description)
 	}

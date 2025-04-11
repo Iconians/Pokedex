@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"iconians/pokedexcli/internals/pokecache"
 	"io"
 	"net/http"
 )
@@ -10,6 +11,7 @@ import (
 type Config struct {
 	Next     string
 	Previous string
+	Cache    *pokecache.Cache
 }
 
 type LocationAreaResponse struct {
@@ -20,6 +22,31 @@ type LocationAreaResponse struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"results"`
+}
+
+func fetchURL(url string, config *Config) ([]byte, error) {
+	if config.Cache != nil {
+		if val, found := config.Cache.Get(url); found {
+			fmt.Println("Using Cached data.")
+			return val, nil
+		}
+	}
+
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Cache != nil {
+		config.Cache.Add(url, body)
+	}
+	return body, nil
 }
 
 func MapCommand(config *Config) {
@@ -62,18 +89,19 @@ func MapBackCommand(config *Config) {
 		return
 	}
 
-	res, err := http.Get(config.Previous)
+	body, err := fetchURL(config.Previous, config)
+	// res, err := http.Get(config.Previous)
 	if err != nil {
 		fmt.Println("Failed to fetch previous locations:", err)
 		return
 	}
-	defer res.Body.Close()
+	// defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println("Failed to read response:", err)
-		return
-	}
+	// body, err := io.ReadAll(res.Body)
+	// if err != nil {
+	// 	fmt.Println("Failed to read response:", err)
+	// 	return
+	// }
 
 	var data LocationAreaResponse
 	err = json.Unmarshal(body, &data)
